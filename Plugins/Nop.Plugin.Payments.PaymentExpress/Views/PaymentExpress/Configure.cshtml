@@ -1,0 +1,59 @@
+﻿@{
+    Layout = "";
+}
+@model ConfigurationModel
+@using Nop.Plugin.Payments.PaymentExpress.Models;
+@using Nop.Web.Framework;
+@Html.Action("StoreScopeConfiguration", "Setting", new { area = "Admin" })
+
+@using (Html.BeginForm())
+{
+    <table class="adminContent">
+    <tr>
+        <td colspan="2">
+            <a href="http://www.paymentexpress.com/Technical_Resources/Ecommerce_Hosted/PxPay_2_0" target="_blank">Payment Express Implementation Details</a>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2" width="100%">
+            <hr />
+        </td>
+    </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.PxUrl_OverrideForStore, model => model.PxUrl, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.PxUrl):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.PxUrl)
+                @Html.ValidationMessageFor(model => model.PxUrl)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.PxUserId_OverrideForStore, model => model.PxUserId, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.PxUserId):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.PxUserId)
+                @Html.ValidationMessageFor(model => model.PxUserId)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.PxPassword_OverrideForStore, model => model.PxPassword, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.PxPassword):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.PxPassword)
+                @Html.ValidationMessageFor(model => model.PxPassword)
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" width="100%">
+                <input type="submit" name="save" class="t-button" value="@T("Admin.Common.Save")" />
+            </td>
+        </tr>
+    </table>
+    
+}

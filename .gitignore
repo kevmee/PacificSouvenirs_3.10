@@ -149,3 +149,9 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+
+
+#NopCommerce
+Presentation/Nop.Web/Plugins/
+Presentation/Nop.Web/App_Data/
+Presentation/Nop.Web/Content/
