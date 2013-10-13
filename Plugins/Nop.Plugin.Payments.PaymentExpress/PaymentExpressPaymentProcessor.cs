@@ -21,6 +21,7 @@ using Nop.Services.Payments;
 using Nop.Services.Tax;
 using Nop.Plugin.Payments.PaymentExpress.Models;
 using System.Web.Mvc;
+using Nop.Services.Logging;
 
 namespace Nop.Plugin.Payments.PaymentExpress
 {
@@ -40,14 +41,15 @@ namespace Nop.Plugin.Payments.PaymentExpress
         private readonly ITaxService _taxService;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly HttpContextBase _httpContext;
+        private readonly ILogger _logger;
         #endregion
 
         #region Ctor
 
         public PaymentExpressPaymentProcessor(PaymentExpressPaymentSettings PaymentExpressPaymentSettings,
             ISettingService settingService, ICurrencyService currencyService,
-            CurrencySettings currencySettings, IWebHelper webHelper,
-            ICheckoutAttributeParser checkoutAttributeParser, ITaxService taxService, 
+            CurrencySettings currencySettings, ILogger logger, IWebHelper webHelper,
+            ICheckoutAttributeParser checkoutAttributeParser, ITaxService taxService,
             IOrderTotalCalculationService orderTotalCalculationService, HttpContextBase httpContext)
         {
             this._PaymentExpressPaymentSettings = PaymentExpressPaymentSettings;
@@ -59,103 +61,9 @@ namespace Nop.Plugin.Payments.PaymentExpress
             this._taxService = taxService;
             this._orderTotalCalculationService = orderTotalCalculationService;
             this._httpContext = httpContext;
+            this._logger = logger;
         }
 
-        #endregion
-
-        #region Utilities
-
-        ///// <summary>
-        ///// Gets Paypal URL
-        ///// </summary>
-        ///// <returns></returns>
-        //private string GetPaypalUrl()
-        //{
-        //    return _PaymentExpressPaymentSettings.UseSandbox ? "https://www.sandbox.paypal.com/us/cgi-bin/webscr" :
-        //        "https://www.paypal.com/us/cgi-bin/webscr";
-        //}
-        ///// <summary>
-        ///// Gets PDT details
-        ///// </summary>
-        ///// <param name="tx">TX</param>
-        ///// <param name="values">Values</param>
-        ///// <param name="response">Response</param>
-        ///// <returns>Result</returns>
-        //public bool GetPDTDetails(string tx, out Dictionary<string, string> values, out string response)
-        //{
-        //    var req = (HttpWebRequest)WebRequest.Create(GetPaypalUrl());
-        //    req.Method = "POST";
-        //    req.ContentType = "application/x-www-form-urlencoded";
-
-        //    string formContent = string.Format("cmd=_notify-synch&at={0}&tx={1}", _PaymentExpressPaymentSettings.PdtToken, tx);
-        //    req.ContentLength = formContent.Length;
-
-        //    using (var sw = new StreamWriter(req.GetRequestStream(), Encoding.ASCII))
-        //        sw.Write(formContent);
-
-        //    response = null;
-        //    using (var sr = new StreamReader(req.GetResponse().GetResponseStream()))
-        //        response = HttpUtility.UrlDecode(sr.ReadToEnd());
-
-        //    values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        //    bool firstLine = true, success = false;
-        //    foreach (string l in response.Split('\n'))
-        //    {
-        //        string line = l.Trim();
-        //        if (firstLine)
-        //        {
-        //            success = line.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase);
-        //            firstLine = false;
-        //        }
-        //        else
-        //        {
-        //            int equalPox = line.IndexOf('=');
-        //            if (equalPox >= 0)
-        //                values.Add(line.Substring(0, equalPox), line.Substring(equalPox + 1));
-        //        }
-        //    }
-
-        //    return success;
-        //}
-
-        ///// <summary>
-        ///// Verifies IPN
-        ///// </summary>
-        ///// <param name="formString">Form string</param>
-        ///// <param name="values">Values</param>
-        ///// <returns>Result</returns>
-        //public bool VerifyIPN(string formString, out Dictionary<string, string> values)
-        //{
-        //    var req = (HttpWebRequest)WebRequest.Create(GetPaypalUrl());
-        //    req.Method = "POST";
-        //    req.ContentType = "application/x-www-form-urlencoded";
-
-        //    string formContent = string.Format("{0}&cmd=_notify-validate", formString);
-        //    req.ContentLength = formContent.Length;
-
-        //    using (var sw = new StreamWriter(req.GetRequestStream(), Encoding.ASCII))
-        //    {
-        //        sw.Write(formContent);
-        //    }
-
-        //    string response = null;
-        //    using (var sr = new StreamReader(req.GetResponse().GetResponseStream()))
-        //    {
-        //        response = HttpUtility.UrlDecode(sr.ReadToEnd());
-        //    }
-        //    bool success = response.Trim().Equals("VERIFIED", StringComparison.OrdinalIgnoreCase);
-
-        //    values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        //    foreach (string l in formString.Split('&'))
-        //    {
-        //        string line = l.Trim();
-        //        int equalPox = line.IndexOf('=');
-        //        if (equalPox >= 0)
-        //            values.Add(line.Substring(0, equalPox), line.Substring(equalPox + 1));
-        //    }
-
-        //    return success;
-        //}
         #endregion
 
         #region Methods
@@ -181,11 +89,12 @@ namespace Nop.Plugin.Payments.PaymentExpress
             var builder = new StringBuilder();
 
             var helper = new PaymentExpressHelper(_PaymentExpressPaymentSettings.PxUrl, _PaymentExpressPaymentSettings.PxUserId, _PaymentExpressPaymentSettings.PxPassword);
-            
+
             RequestInput input = new RequestInput();
 
+
             input.AmountInput = postProcessPaymentRequest.Order.OrderTotal.ToString("F");
-            input.CurrencyInput = "NZD";
+            input.CurrencyInput = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode;
             input.MerchantReference = postProcessPaymentRequest.Order.Id.ToString();
             input.TxnType = "Purchase";
             input.UrlFail = _webHelper.GetStoreLocation(false) + "Plugins/PaymentPaymentExpress/CancelOrder";
@@ -197,8 +106,14 @@ namespace Nop.Plugin.Payments.PaymentExpress
             if (output.valid == "1")
             {
                 // Redirect user to payment page
-
                 _httpContext.Response.Redirect(output.Url);
+            }
+            else
+            {
+                string errorStr = string.Format("Failed to process Payment Express request. Message {0}", output.URI);
+                _logger.Error(errorStr);
+
+                throw new Exception("There was an issue connecting with our Payment Provider.");
             }
         }
 
@@ -209,7 +124,7 @@ namespace Nop.Plugin.Payments.PaymentExpress
         /// <returns>Additional handling fee</returns>
         public decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
-            
+
             //var result = cart this.CalculateAdditionalFee(_orderTotalCalculationService, cart,
             //    _PaymentExpressPaymentSettings.AdditionalFee, _PaymentExpressPaymentSettings.AdditionalFeePercentage);
             return 0M;
@@ -284,7 +199,7 @@ namespace Nop.Plugin.Payments.PaymentExpress
         {
             if (order == null)
                 throw new ArgumentNullException("order");
-            
+
             //let's ensure that at least 1 minute passed after order is placed
             if ((DateTime.UtcNow - order.CreatedOnUtc).TotalMinutes < 1)
                 return false;
@@ -340,9 +255,9 @@ namespace Nop.Plugin.Payments.PaymentExpress
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.PaymentExpress.Fields.PxUserId.Hint", "Specify your Payment Express User Id.");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.PaymentExpress.Fields.PxPassword", "Password");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.PaymentExpress.Fields.PxPassword.Hint", "Specify your Payment Express Password.");
-            base.Install();
+           base.Install();
         }
-        
+
         public override void Uninstall()
         {
             //settings

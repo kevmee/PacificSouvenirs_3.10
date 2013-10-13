@@ -86,6 +86,9 @@
     <None Include="web.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Images\DPS_PX.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Description.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
