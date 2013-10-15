@@ -2491,6 +2491,7 @@ namespace Nop.Admin.Controllers
                     Sku = x.Sku,
                     OldPrice = x.OldPrice,
                     Price = x.Price,
+                    Weight = x.Weight,
                     ManageInventoryMethod = x.ManageInventoryMethod.GetLocalizedEnum(_localizationService, _workContext.WorkingLanguage.Id),
                     StockQuantity = x.StockQuantity,
                     Published = x.Published
@@ -2529,6 +2530,7 @@ namespace Nop.Admin.Controllers
                         product.Sku = pModel.Sku;
                         product.Price = pModel.Price;
                         product.OldPrice = pModel.OldPrice;
+                        product.Weight = pModel.Weight;
                         product.StockQuantity = pModel.StockQuantity;
                         product.Published = pModel.Published;
                         _productService.UpdateProduct(product);

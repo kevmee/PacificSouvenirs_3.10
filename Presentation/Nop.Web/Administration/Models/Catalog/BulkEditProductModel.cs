@@ -20,6 +20,9 @@ namespace Nop.Admin.Models.Catalog
         [NopResourceDisplayName("Admin.Catalog.BulkEdit.Fields.OldPrice")]
         public decimal OldPrice { get; set; }
 
+        [NopResourceDisplayName("Admin.Catalog.BulkEdit.Fields.Weight")]
+        public decimal Weight { get; set; }
+
         [NopResourceDisplayName("Admin.Catalog.BulkEdit.Fields.ManageInventoryMethod")]
         public string ManageInventoryMethod { get; set; }
 
